@@ -5,7 +5,7 @@ from utils.kedro_utils import get_kedro_context
 
 from .pipelines.pipelines_preprocessing import (
     create_preprocessing_full_pipeline,
-    create_preprocessing_no_feature_engineering_pipeline,
+    create_preprocessing_sqldb_pipeline,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -33,9 +33,7 @@ def register_pipelines() -> dict[str, Pipeline]:
     # ----------------------------------
     ### Data Preprocessing Sub Pipeline
     # ----------------------------------
-    pipelines["data_preprocessing_no_feature_engineering"] = (
-        create_preprocessing_no_feature_engineering_pipeline()
-    )
+    pipelines["data_preprocessing_sqldb"] = create_preprocessing_sqldb_pipeline()
 
     # ----------------------------------
     # Full Main Pipeline
