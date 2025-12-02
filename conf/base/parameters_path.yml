@@ -1,0 +1,5 @@
+# paths
+raw_data_path: "data/01_raw"
+working_path: "data/02_working"
+processed_path: "data/03_processed"
+output_path: "data/output"

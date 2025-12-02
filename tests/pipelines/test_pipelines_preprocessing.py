@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, inspect
 import os
 
 # Import your functions
-from src.casestudy_leroy_ee.pipelines.pipelines_preprocessing import (
+from src.casestudy_bmw_business_reporting.pipelines.pipelines_preprocessing import (
     load_xlsx_to_df,
     check_and_warn_percent_missing_values,
     clean_data,
