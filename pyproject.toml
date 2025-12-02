@@ -5,7 +5,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "Casestudy_Leroy_Ee"
+name = "casestudy_bmw_business_reporting"
 version = "0.1.0"
 authors = [
     {name = "Leroy Ee Bing Yao", email = "leroyeby@gmail.com"},
@@ -31,7 +31,7 @@ readme = "README.md"
 license = {text = "MIT"}
 
 [project.scripts]
-casestudy-leroy-ee = "casestudy_leroy_ee.__main__:main"
+casestudy-bmw_business_reporting = "casestudy_bmw_business_reporting.__main__:main"
 
 [project.optional-dependencies]
 dev = [
@@ -45,7 +45,7 @@ dev = [
 distribution = false
 
 [tool.setuptools.dynamic.version]
-attr = "casestudy_leroy_ee.__version__"
+attr = "casestudy_bmw_business_reporting.__version__"
 
 [tool.setuptools.packages.find]
 where = [
@@ -54,15 +54,15 @@ where = [
 namespaces = false
 
 [tool.kedro]
-package_name = "casestudy_leroy_ee"
-project_name = "Casestudy_Leroy_Ee"
+package_name = "casestudy_bmw_business_reporting"
+project_name = "Casestudy_BMW_Business_Reporting"
 kedro_init_version = "1.1.1"
 tools = "['Linting', 'Testing', 'Custom Logging', 'Data Structure']"
 example_pipeline = "False"
 source_dir = "src"
 
 [tool.pytest.ini_options]
-addopts = "--cov-report term-missing --cov src/casestudy_leroy_ee -ra"
+addopts = "--cov-report term-missing --cov src/casestudy_bmw_business_reporting -ra"
 
 [tool.coverage.report]
 fail_under = 0
