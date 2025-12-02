@@ -1,0 +1,42 @@
+# preprocessing parameters
+
+required_cols:
+  [
+    "Model",
+    "Year",
+    "Region",
+    "Color",
+    "Fuel_Type",
+    "Transmission",
+    "Engine_Size_L",
+    "Mileage_KM",
+    "Price_USD",
+    "Sales_Volume",
+  ]
+missing_upper_limit: 0.05
+missing_handling: "drop_rows"
+feature_engineering:
+  # do not include the Year column within these params. It is handled separately.
+  target_variables: ["Sales_Volume", "Revenue_USD"]
+  feature_params:
+    # the number of these labels affect the number of bins. The bins are equal sized and divided along the total range of values
+    price_range_bin_labels: ["Entry", "Mid-range", "High-end"]
+    fuel_efficiency_bin_labels: ["Low", "Mid", "High"]
+    model_series_map:
+      {
+        "Number Series": ["3 Series", "5 Series", "7 Series"],
+        "i Series": ["i3", "i8"],
+        "M Series": ["M3", "M5"],
+        "X Series": ["X1", "X3", "X5", "X6"],
+      }
+    categorical_variables:
+      [
+        "Model",
+        "Region",
+        "Color",
+        "Fuel_Type",
+        "Transmission",
+        "Fuel_Efficiency_Range",
+        "Price_Tier",
+        "Model_Series",
+      ]
