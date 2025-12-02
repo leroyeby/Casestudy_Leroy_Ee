@@ -37,6 +37,8 @@ This preprocessing pipeline is designed to support downstream analytics, visuali
 
 from pathlib import Path
 import pandas as pd
+from langchain_community.utilities import SQLDatabase
+from sqlalchemy import create_engine
 from kedro.pipeline import Pipeline, node
 
 
