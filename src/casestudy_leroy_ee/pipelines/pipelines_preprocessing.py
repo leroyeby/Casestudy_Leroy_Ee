@@ -85,7 +85,7 @@ def create_preprocessing_full_pipeline(
     )
 
 
-def create_preprocessing_no_feature_engineering_pipeline(
+def create_preprocessing_sqldb_pipeline(
     **kwargs,
 ) -> Pipeline:
     """Kedro Pipeline created to house nodes that runs and conducts data preprocessing and creation of csv subtables. This pipeline eschews feature engineering."""
@@ -110,10 +110,10 @@ def create_preprocessing_no_feature_engineering_pipeline(
                 name="clean_data",
             ),
             node(
-                func=export_df_to_csv,
-                inputs=["df_list_to_export", "params:working_path"],
+                func=export_df_to_sqldb,
+                inputs=["df_to_export", "params:working_path"],
                 outputs=None,
-                name="export_df_to_csv",
+                name="export_df_to_sqldb",
             ),
         ]
     )
@@ -411,3 +411,52 @@ def export_df_to_csv(
         raise AssertionError(
             "Input variable df_list_or_tuple accepts only lists or tuple"
         )
+
+
+def export_df_to_sqldb(
+    df_list_or_tuple: list[tuple[str, pd.DataFrame]] | tuple[str, pd.DataFrame],
+    working_path: str,
+) -> None:
+    """
+    Export one or multiple pandas DataFrames to an SQLite database.
+
+    This function accepts either:
+    - A list of `(table_name, DataFrame)` tuples, or
+    - A single `(table_name, DataFrame)` tuple.
+
+    It writes each DataFrame into an SQLite database located at
+    `<working_path>/sqldb.db`. If the database does not exist, it is created.
+    Each DataFrame is stored as a table using its associated name.
+
+    Args:
+        df_list_or_tuple (list[tuple[str, pd.DataFrame]] | tuple[str, pd.DataFrame]):
+            A single `(table_name, DataFrame)` tuple or a list of such tuples.
+            Each tuple specifies the name of the SQL table and the DataFrame
+            that will be written into the database.
+        working_path (str):
+            Directory path where the SQLite database file (`sqldb.db`)
+            will be stored or created.
+
+    Returns:
+        None: This function does not return anything. It writes tables directly
+        into the SQLite database.
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If any issue occurs while writing to the
+            SQLite database.
+        ValueError: If the provided input is not a tuple or list of tuples.
+
+    """
+    db_path = working_path + "/sqldb.db"
+    db_path = f"sqlite:///{db_path}"
+
+    engine = create_engine(db_path)
+
+    if isinstance(df_list_or_tuple, list):
+        # list detected. Feature engineered. Subtables generated.
+        for filename, df in df_list_or_tuple:
+            df.to_sql(filename, engine, index=False)
+    elif isinstance(df_list_or_tuple, tuple):
+        # tuple detected. Full dataframe used.
+        filename, df = df_list_or_tuple
+        df.to_sql(filename, engine, index=False)
