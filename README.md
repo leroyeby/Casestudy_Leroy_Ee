@@ -1,4 +1,4 @@
-# Casestudy_Leroy_Ee
+# Casestudy_BMW_Business_reporting
 
 [![Powered by Kedro](https://img.shields.io/badge/powered_by-kedro-ffc900?logo=kedro)](https://kedro.org)
 
