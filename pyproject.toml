@@ -23,6 +23,8 @@ dependencies = [
     "openpyxl>=3.1.5",
     "matplotlib>=3.10.7",
     "google-genai>=1.52.0",
+    "sqlalchemy>=2.0.44",
+    "langchain-community>=0.4.1",
 ]
 requires-python = ">=3.10"
 readme = "README.md"
@@ -35,7 +37,7 @@ casestudy-leroy-ee = "casestudy_leroy_ee.__main__:main"
 dev = [
     "pytest-cov>=3,<7",
     "pytest-mock>=1.7.1, <2.0",
-    "pytest~=7.2",
+    "pytest>=9.0.1",
     "ruff~=0.12.0",
 ]
 
