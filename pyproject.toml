@@ -6,8 +6,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 requires-python = ">=3.10"
-name = "casestudy_leroy_ee"
+name = "Casestudy_Leroy_Ee"
+version = "0.1.0"
+authors = [
+    {name = "Leroy Ee Bing Yao", email = "leroyeby@gmail.com"},
+]
 readme = "README.md"
+license = {text = "MIT"}
 dynamic = [
     "version",
 ]
@@ -15,7 +20,7 @@ dependencies = [
     "ipython>=8.10",
     "jupyterlab>=3.0",
     "notebook",
-    "kedro~=1.1.1",
+    "kedro>=1.1.1",
 ]
 
 [project.scripts]
@@ -30,6 +35,9 @@ dev = [
     "pytest~=7.2",
     "ruff~=0.12.0",
 ]
+
+[tool.pdm]
+distribution = false
 
 [tool.setuptools.dynamic.version]
 attr = "casestudy_leroy_ee.__version__"
