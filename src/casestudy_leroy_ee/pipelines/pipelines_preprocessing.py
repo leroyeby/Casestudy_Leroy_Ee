@@ -30,6 +30,9 @@ Nodes
 - `export_df_to_csv`:
     Saves cleaned or feature-engineered datasets to CSV files.
 
+- `export_df_to_sqldb`:
+    Saves cleaned or feature-engineered datasets to an SQL Database.
+
 Notes
 -----
 This preprocessing pipeline is designed to support downstream analytics, visualization, and report-generation workflows by structuring data consistently and safely before use.
