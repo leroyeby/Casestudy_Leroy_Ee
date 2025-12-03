@@ -4,13 +4,17 @@ from kedro.pipeline import Pipeline
 from utils.kedro_utils import get_kedro_context
 
 from .pipelines.pipelines_preprocessing import (
-    create_preprocessing_full_pipeline,
+    create_preprocessing_csv_pipeline,
     create_preprocessing_sqldb_pipeline,
 )
 from .pipelines.pipelines_invoke_llm import (
     create_invoke_llm_full_pipeline,
+    create_invoke_llm_only_pipeline,
 )
-from .pipelines.pipelines_generate_report import create_generate_report_full_pipeline
+from .pipelines.pipelines_generate_report import (
+    create_generate_report_full_pipeline,
+    create_generate_report_only_pipeline,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,7 +36,7 @@ def register_pipelines() -> dict[str, Pipeline]:
     # ----------------------------------
     ### Data Preprocessing Main Pipeline
     # ----------------------------------
-    pipelines["data_preprocessing_full"] = create_preprocessing_full_pipeline()
+    pipelines["data_preprocessing_only"] = create_preprocessing_csv_pipeline()
 
     # ----------------------------------
     ### Data Preprocessing Sub Pipeline
@@ -45,7 +49,7 @@ def register_pipelines() -> dict[str, Pipeline]:
     # ----------------------------------
     ### Invoke LLM Main Pipeline
     # ----------------------------------
-    pipelines["invoke_llm_full"] = create_invoke_llm_full_pipeline()
+    pipelines["invoke_llm_only"] = create_invoke_llm_only_pipeline()
 
     # ----------------------------------
     # Generate Report Pipelines
@@ -53,13 +57,13 @@ def register_pipelines() -> dict[str, Pipeline]:
     # ----------------------------------
     ### Generate Report Main Pipeline
     # ----------------------------------
-    pipelines["generate_report_full"] = create_generate_report_full_pipeline()
+    pipelines["generate_report_only"] = create_generate_report_only_pipeline()
 
     # ----------------------------------
     # Full Main Pipeline
     # ----------------------------------
     pipelines["__default__"] = (
-        create_preprocessing_full_pipeline()
+        create_preprocessing_csv_pipeline()
         + create_invoke_llm_full_pipeline()
         + create_generate_report_full_pipeline()
     )

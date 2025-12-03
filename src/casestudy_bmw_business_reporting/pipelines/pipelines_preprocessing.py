@@ -6,11 +6,11 @@ This module defines a complete Kedro pipeline and its associated nodes for loadi
 
 Pipelines
 ---------
-- `create_preprocessing_full_pipeline`:
-    Creates the full preprocessing pipeline
+- `create_preprocessing_csv_pipeline`:
+    Creates the preprocessing pipeline that can be run on its own or connected  to the invoke llm pipeline.
 
-- `create_preprocessing_no_feature_engineering_pipeline`:
-    Creates the preprocessing sub pipeline eschewing the feature engineering node. The data loaded into the llm would be just the single cleaned dataset.
+- `create_preprocessing_sqldb_pipeline`:
+    Creates the preprocessing sub pipeline eschewing the feature engineering node. The data is saved into an SQLite Database.
 
 
 Nodes
@@ -50,7 +50,7 @@ from kedro.pipeline import Pipeline, node
 # ============================
 
 
-def create_preprocessing_full_pipeline(
+def create_preprocessing_csv_pipeline(
     **kwargs,
 ) -> Pipeline:
     """Kedro Pipeline created to house nodes that runs and conducts data preprocessing and creation of csv subtables."""
@@ -83,7 +83,7 @@ def create_preprocessing_full_pipeline(
             node(
                 func=export_df_to_csv,
                 inputs=["df_list_to_export", "params:working_path"],
-                outputs=None,
+                outputs="start_invoke_signal",
                 name="export_df_to_csv",
             ),
         ]
@@ -117,7 +117,7 @@ def create_preprocessing_sqldb_pipeline(
             node(
                 func=export_df_to_sqldb,
                 inputs=["df_to_export", "params:working_path"],
-                outputs=None,
+                outputs="start_invoke_signal",
                 name="export_df_to_sqldb",
             ),
         ]
@@ -376,7 +376,7 @@ def engineer_features(
 def export_df_to_csv(
     df_list_or_tuple: list[tuple[str, pd.DataFrame]] | tuple[str, pd.DataFrame],
     working_path: str,
-) -> None:
+) -> str:
     """
     Export one or multiple DataFrames to CSV format.
 
@@ -385,8 +385,7 @@ def export_df_to_csv(
     - A list of such tuples.
 
     Each DataFrame is exported as a CSV file to the specified working directory,
-    with the filename derived from the provided tuple. The function distinguishes
-    between list and tuple inputs using `isinstance` and handles each case accordingly.
+    with the filename derived from the provided tuple. The function distinguishes between list and tuple inputs using `isinstance` and handles each case accordingly.
 
     Args:
         df_list_or_tuple (list[tuple[str, pd.DataFrame]] | tuple[str, pd.DataFrame]):
@@ -401,8 +400,8 @@ def export_df_to_csv(
             If `df_list_or_tuple` is neither a tuple nor a list of tuples.
 
     Returns:
-        None
-            This function does not return anything. It writes CSV files to disk.
+        str:
+            String signalling the invoke llm pipeline can start.
     """
     if isinstance(df_list_or_tuple, list):
         # list detected. Feature engineered. Subtables generated.
@@ -417,11 +416,13 @@ def export_df_to_csv(
             "Input variable df_list_or_tuple accepts only lists or tuple"
         )
 
+    return "ready to invoke"
+
 
 def export_df_to_sqldb(
     df_list_or_tuple: list[tuple[str, pd.DataFrame]] | tuple[str, pd.DataFrame],
     working_path: str,
-) -> None:
+) -> str:
     """
     Export one or multiple pandas DataFrames to an SQLite database.
 
@@ -443,8 +444,7 @@ def export_df_to_sqldb(
             will be stored or created.
 
     Returns:
-        None: This function does not return anything. It writes tables directly
-        into the SQLite database.
+        str: String signalling the invoke llm pipeline can start.
 
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If any issue occurs while writing to the
@@ -465,3 +465,5 @@ def export_df_to_sqldb(
         # tuple detected. Full dataframe used.
         filename, df = df_list_or_tuple
         df.to_sql(filename, engine, index=False)
+
+    return "ready to invoke"

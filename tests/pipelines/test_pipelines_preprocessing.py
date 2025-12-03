@@ -7,7 +7,6 @@ from pandas.testing import assert_frame_equal
 from sqlalchemy import create_engine, inspect
 import os
 
-# Import your functions
 from src.casestudy_bmw_business_reporting.pipelines.pipelines_preprocessing import (
     load_xlsx_to_df,
     check_and_warn_percent_missing_values,
@@ -172,14 +171,16 @@ def test_engineer_features(sample_df):
 def test_export_df_to_csv_list(tmp_path, sample_df):
     """Test exporting a list of DataFrames to CSV."""
     df_list = [("df1", sample_df)]
-    export_df_to_csv(df_list, working_path=str(tmp_path))
+    result = export_df_to_csv(df_list, working_path=str(tmp_path))
     assert (tmp_path / "df1.csv").exists()
+    assert result == "ready to invoke"
 
 
 def test_export_df_to_csv_tuple(tmp_path, sample_df):
     """Test exporting a single DataFrame tuple to CSV."""
-    export_df_to_csv(("df2", sample_df), working_path=str(tmp_path))
+    result = export_df_to_csv(("df2", sample_df), working_path=str(tmp_path))
     assert (tmp_path / "df2.csv").exists()
+    assert result == "ready to invoke"
 
 
 def test_export_df_to_csv_invalid_input(tmp_path):
@@ -194,9 +195,10 @@ def test_export_df_to_csv_invalid_input(tmp_path):
 def test_export_df_to_sqldb_list(tmp_path, sample_df):
     """Test exporting a list of DataFrames to SQLite database."""
     df_list = [("df1", sample_df)]
-    export_df_to_sqldb(df_list, working_path=str(tmp_path))
+    result = export_df_to_sqldb(df_list, working_path=str(tmp_path))
     db_file = tmp_path / "sqldb.db"
     assert db_file.exists()
+    assert result == "ready to invoke"
 
     # Check table exists
     engine = create_engine(f"sqlite:///{db_file}")
@@ -207,9 +209,10 @@ def test_export_df_to_sqldb_list(tmp_path, sample_df):
 
 def test_export_df_to_sqldb_tuple(tmp_path, sample_df):
     """Test exporting a single DataFrame tuple to SQLite database."""
-    export_df_to_sqldb(("df2", sample_df), working_path=str(tmp_path))
+    result = export_df_to_sqldb(("df2", sample_df), working_path=str(tmp_path))
     db_file = tmp_path / "sqldb.db"
     assert db_file.exists()
+    assert result == "ready to invoke"
 
     engine = create_engine(f"sqlite:///{db_file}")
     inspector = inspect(engine)

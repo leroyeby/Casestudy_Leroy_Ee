@@ -13,13 +13,18 @@ The generated report includes:
 Pipelines
 ---------
 - `create_generate_report_full_pipeline`:
-    Creates the full Kedro pipeline for report generation.
+    Creates the full Kedro pipeline for report generation. Used in full pipeline.
 
+- `create_generate_report_only_pipeline`:
+    Creates the full Kedro pipeline for report generation. Used when only generating report.
 
 Nodes
 -----
+- `read_response_json_full`:
+    Reads an LLM response JSON file and returns its raw string content. For use in full pipeline.
+
 - `read_response_json`:
-    Reads an LLM response JSON file and returns its raw string content.
+    Reads an LLM response JSON file and returns its raw string content. For use when only generating report.
 
 - `read_missing_data_warning_txt`:
     Reads an optional missing data warning text file, returning its content or an empty string.
@@ -57,7 +62,40 @@ logger = logging.getLogger(__name__)
 def create_generate_report_full_pipeline(
     **kwargs,
 ) -> Pipeline:
-    """Kedro Pipeline created to house nodes that loads subtables for input and invokes the llm for the generation of a structured output."""
+    """Kedro Pipeline created to house nodes that loads subtables for input and invokes the llm for the generation of a structured output. This pipeline is used when invoking the full process of preprocessing into invoking into report generation."""
+    return Pipeline(
+        [
+            node(
+                func=read_response_json_full,
+                inputs=["params:working_path", "start_report_gen_signal"],
+                outputs="response_str_to_report",
+                name="read_response_json",
+            ),
+            node(
+                func=read_missing_data_warning_txt,
+                inputs="params:working_path",
+                outputs="missing_data_warning_str",
+                name="read_missing_data_warning_txt",
+            ),
+            node(
+                func=construct_report_from_llm_response_str,
+                inputs=[
+                    "response_str_to_report",
+                    "missing_data_warning_str",
+                    "params:working_path",
+                    "params:output_path",
+                ],
+                outputs="business_report_md",
+                name="construct_report_from_llm_response_dict",
+            ),
+        ]
+    )
+
+
+def create_generate_report_only_pipeline(
+    **kwargs,
+) -> Pipeline:
+    """Kedro Pipeline created to house nodes that loads subtables for input and invokes the llm for the generation of a structured output. This pipeline is used when generating report by itself. It presumes invoke llm pipeline has already been executed."""
     return Pipeline(
         [
             node(
@@ -92,9 +130,43 @@ def create_generate_report_full_pipeline(
 # ============================
 
 
+def read_response_json_full(working_path: str, start_report_gen_signal: str) -> str:
+    """
+    Read the contents of the LLM response JSON file from the specified directory and return it as a raw JSON string. For use in the full preprocessing into invoking into report generation pipeline.
+
+    Args:
+        working_path (str): Path to the directory containing the ``response.json`` file.
+        start_report_gen_signal (str): String signalling that llm invoking is complete and json file is in the working directory ready to read.
+    Returns:
+        str: The raw JSON string read from ``response.json``.
+
+    Raises:
+        ValueError: If start_report_gen_signal variable received an unexpected str.
+        FileNotFoundError: If ``response.json`` does not exist in the specified directory.
+        OSError: If the file cannot be opened or read.
+    """
+    if start_report_gen_signal != "ready to generate report":
+        raise ValueError(
+            f"start_report_gen_signal variable is supposed to read 'ready to generate report'. Received signal '{start_report_gen_signal}' instead."
+        )
+
+    working_path = Path(working_path)
+    response_json_filepath = working_path / "response.json"
+
+    if not response_json_filepath.exists():
+        raise FileNotFoundError(
+            f"No json file found in the working data folder {str(working_path)}. Please run invoke llm pipeline before proceeding."
+        )
+
+    with open(response_json_filepath, "r", encoding="utf-8") as f:
+        json_str = f.read()
+
+    return json_str
+
+
 def read_response_json(working_path: str) -> str:
     """
-    Read the contents of the LLM response JSON file from the specified directory and return it as a raw JSON string.
+    Read the contents of the LLM response JSON file from the specified directory and return it as a raw JSON string. For use in 'generate_report_only' pipeline.
 
     Args:
         working_path (str): Path to the directory containing the ``response.json`` file.
@@ -108,6 +180,11 @@ def read_response_json(working_path: str) -> str:
     """
     working_path = Path(working_path)
     response_json_filepath = working_path / "response.json"
+
+    if not response_json_filepath.exists():
+        raise FileNotFoundError(
+            f"No json file found in the working data folder {str(working_path)}. Please run invoke llm pipeline before proceeding."
+        )
 
     with open(response_json_filepath, "r", encoding="utf-8") as f:
         json_str = f.read()

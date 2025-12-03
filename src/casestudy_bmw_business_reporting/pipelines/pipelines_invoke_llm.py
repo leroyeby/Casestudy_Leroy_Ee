@@ -7,13 +7,22 @@ This module defines the Kedro pipeline and node functions responsible for prepar
 Pipelines
 ---------
 - `create_invoke_llm_full_pipeline`:
-    Builds and returns the full Kedro pipeline.
+    Builds and returns the full Kedro pipeline. Used in full pipeline.
+
+- `create_invoke_llm_only_pipeline`:
+    Builds and returns the full Kedro pipeline. Used on its own.
 
 
 Functions
 ---------
-- `load_subtables_and_write_prompt`:
-    Loads the feature engineered subtables and writes the prompt for downstream calling.
+- `load_subtables_full`:
+    Loads the feature engineered subtables. For use in full pipeline.
+
+- `load_subtables`:
+    Loads the feature engineered subtables. For use when only invoking llm.
+
+- `write_prompt`:
+    Writes the prompt for downstream calling.
 
 - `call_google_gemini_llm`:
     Invokes the google gemini llm and returns a json readable string.
@@ -46,14 +55,20 @@ logger = logging.getLogger(__name__)
 def create_invoke_llm_full_pipeline(
     **kwargs,
 ) -> Pipeline:
-    """Kedro Pipeline created to house nodes that loads subtables for input and invokes the llm for the generation of a structured output."""
+    """Kedro Pipeline created to house nodes that loads subtables for input and invokes the llm for the generation of a structured output. This pipeline is used when invoking the full process of preprocessing into invoking into report generation."""
     return Pipeline(
         [
             node(
-                func=load_subtables_and_write_prompt,
-                inputs="params:working_path",
+                func=load_subtables_full,
+                inputs=["params:working_path", "start_invoke_signal"],
+                outputs="loaded_subtables",
+                name="load_subtables_full",
+            ),
+            node(
+                func=write_prompt,
+                inputs="loaded_subtables",
                 outputs="prompt_from_csv",
-                name="load_subtables_and_write_prompt",
+                name="write_prompt",
             ),
             node(
                 func=call_google_gemini_llm,
@@ -64,7 +79,41 @@ def create_invoke_llm_full_pipeline(
             node(
                 func=write_llm_response_as_json,
                 inputs=["llm_response_json_readable", "params:working_path"],
-                outputs=None,
+                outputs="start_report_gen_signal",
+                name="write_llm_response_as_json",
+            ),
+        ]
+    )
+
+
+def create_invoke_llm_only_pipeline(
+    **kwargs,
+) -> Pipeline:
+    """Kedro Pipeline created to house nodes that loads subtables for input and invokes the llm for the generation of a structured output. This pipeline is used when invoking llm by itself. It presumes preprocessing pipeline has already been executed."""
+    return Pipeline(
+        [
+            node(
+                func=load_subtables,
+                inputs="params:working_path",
+                outputs="loaded_subtables",
+                name="load_subtables",
+            ),
+            node(
+                func=write_prompt,
+                inputs="loaded_subtables",
+                outputs="prompt_from_csv",
+                name="write_prompt",
+            ),
+            node(
+                func=call_google_gemini_llm,
+                inputs="prompt_from_csv",
+                outputs="llm_response_json_readable",
+                name="call_google_gemini_llm",
+            ),
+            node(
+                func=write_llm_response_as_json,
+                inputs=["llm_response_json_readable", "params:working_path"],
+                outputs="start_report_gen_signal",
                 name="write_llm_response_as_json",
             ),
         ]
@@ -76,7 +125,7 @@ def create_invoke_llm_full_pipeline(
 # ============================
 
 
-def load_subtables_and_write_prompt(working_path: str) -> str:
+def load_subtables_full(working_path: str, start_invoke_signal: str) -> dict:
     """
     Load all CSV subtables from a directory, convert them into JSON-serializable
     dictionaries, and assemble a formatted analysis prompt embedding the data.
@@ -88,13 +137,13 @@ def load_subtables_and_write_prompt(working_path: str) -> str:
         FileNotFoundError: If no csv (.csv) file is found in the specified folder.
 
     Returns:
-        str: A formatted prompt string intended for an LLM. The prompt includes
-        contextual instructions and an embedded dictionary where each key is a
-        CSV filename and each value is a list of row dictionaries produced from
-        the CSV contents.
+        dict: JSON of data loaded from the csv.
     """
-    # rewrite docstring
-    json_dict = {}
+    if start_invoke_signal != "ready to invoke":
+        raise AssertionError(
+            f"start_invoke_signal variable is supposed to read 'ready to invoke'. Received signal '{start_invoke_signal}' instead."
+        )
+
     working_path = Path(working_path)
 
     csv_files = list(working_path.glob("*.csv"))
@@ -104,10 +153,55 @@ def load_subtables_and_write_prompt(working_path: str) -> str:
             f"No csv file found in the working data folder {str(working_path)}. Please run preprocessing pipeline before proceeding."
         )
 
+    json_dict = {}
     for file in csv_files:
         df = pd.read_csv(file)
         json_dict[file.name] = df.to_dict(orient="records")
 
+    return json_dict
+
+
+def load_subtables(working_path: str) -> dict:
+    """
+    Load all CSV subtables from a directory, convert them into JSON-serializable
+    dictionaries, and assemble a formatted analysis prompt embedding the data.
+
+    Args:
+        working_path (str): Path to the directory containing CSV subtables to load.
+
+    Raises:
+        FileNotFoundError: If no csv (.csv) file is found in the specified folder.
+
+    Returns:
+        dict: JSON of data loaded from the csv.
+    """
+    working_path = Path(working_path)
+
+    csv_files = list(working_path.glob("*.csv"))
+
+    if not csv_files:
+        raise FileNotFoundError(
+            f"No csv file found in the working data folder {str(working_path)}. Please run preprocessing pipeline before proceeding."
+        )
+
+    json_dict = {}
+    for file in csv_files:
+        df = pd.read_csv(file)
+        json_dict[file.name] = df.to_dict(orient="records")
+
+    return json_dict
+
+
+def write_prompt(json_dict: dict) -> str:
+    """
+    Assemble a formatted analysis prompt embedding the data.
+
+    Args:
+        json_dict (dict): JSON of data loaded from the csv.
+
+    Returns:
+        str: Formatted prompt with data embedded within.
+    """
     prompt = f"""
     You are an expert business analyst and data storyteller. You will receive 
     aggregate tables and sample rows from a feature-engineered BMW sales dataset.
@@ -246,7 +340,7 @@ def call_google_gemini_llm(prompt: str) -> str:
     return response_json_readable_text
 
 
-def write_llm_response_as_json(llm_response: str, working_path: str) -> None:
+def write_llm_response_as_json(llm_response: str, working_path: str) -> str:
     """
     Parse a JSON-formatted LLM response string and write it to a file in the specified directory.
 
@@ -255,7 +349,7 @@ def write_llm_response_as_json(llm_response: str, working_path: str) -> None:
         working_path (str): The directory path where the JSON file ("response.json") will be saved.
 
     Returns:
-        None
+        str: String signalling the generate report pipeline can start.
 
     Raises:
         json.JSONDecodeError: If `llm_response` is not a valid JSON string.
@@ -267,3 +361,5 @@ def write_llm_response_as_json(llm_response: str, working_path: str) -> None:
 
     with open(json_filepath, "w", encoding="utf-8") as f:
         json.dump(parsed_response_dict, f, indent=4)
+
+    return "ready to generate report"
