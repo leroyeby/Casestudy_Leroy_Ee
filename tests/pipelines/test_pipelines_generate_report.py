@@ -6,12 +6,43 @@ from pathlib import Path
 from kedro.pipeline import Pipeline
 
 from src.casestudy_bmw_business_reporting.pipelines.pipelines_generate_report import (
-    create_generate_report_full_pipeline,
+    read_response_json_full,
     read_response_json,
     read_missing_data_warning_txt,
     construct_report_from_llm_response_str,
     _build_analysis_section,
 )
+
+
+# ---------------------------------
+# Tests for read_response_json_full
+# ---------------------------------
+def test_read_response_json_full_reads_file(tmp_path):
+    """Test that `read_response_json` correctly returns the contents of response.json."""
+    file = tmp_path / "response.json"
+    file.write_text('{"key": "value"}', encoding="utf-8")
+
+    result = read_response_json_full(
+        tmp_path, start_report_gen_signal="ready to generate report"
+    )
+
+    assert result == '{"key": "value"}'
+
+
+def test_read_response_json_full_missing_file(tmp_path):
+    """Test that `read_response_json` raises FileNotFoundError if response.json is missing."""
+    with pytest.raises(FileNotFoundError):
+        read_response_json_full(
+            tmp_path, start_report_gen_signal="ready to generate report"
+        )
+
+
+def test_read_response_json_full_wrong_signal(tmp_path):
+    """Test that AssertionError is raised if the start signal is incorrect."""
+    with pytest.raises(ValueError):
+        read_response_json_full(
+            working_path=str(tmp_path), start_report_gen_signal="not_ready"
+        )
 
 
 # ----------------------------
