@@ -1,101 +1,137 @@
 # Casestudy_BMW_Business_reporting
 
-[![Powered by Kedro](https://img.shields.io/badge/powered_by-kedro-ffc900?logo=kedro)](https://kedro.org)
+Guide for utilizing this project repository
 
-## Overview
+# Project Setup Guide (Using PDM)
 
-This is your new Kedro project, which was generated using `kedro 1.1.1`.
+This project uses PDM as the package and environment manager.
+Follow the steps below to prepare your development environment after cloning the repository.
+### Note: Do not manually modify `pdm.lock`. It is auto-generated and manual editing may cause it and the environment to break
+  
+  
+  
+## 1. Install PDM (if you don’t already have it)
 
-Take a look at the [Kedro documentation](https://docs.kedro.org) to get started.
+PDM requires Python 3.8+.
 
-## Rules and guidelines
-
-In order to get the best out of the template:
-
-* Don't remove any lines from the `.gitignore` file we provide
-* Make sure your results can be reproduced by following a data engineering convention
-* Don't commit data to your repository
-* Don't commit any credentials or your local configuration to your repository. Keep all your credentials and local configuration in `conf/local/`
-
-## How to install dependencies
-
-Declare any dependencies in `requirements.txt` for `pip` installation.
-
-To install them, run:
-
-```
-pip install -r requirements.txt
+```bash
+pip install pdm
 ```
 
-## How to run your Kedro pipeline
+Or install via pipx:
 
-You can run your Kedro project with:
-
-```
-kedro run
+```bash
+pipx install pdm
 ```
 
-## How to test your Kedro project
+Verify installation:
 
-Have a look at the file `tests/test_run.py` for instructions on how to write your tests. You can run your tests as follows:
-
+```bash
+pdm --version
 ```
-pytest
+  
+  
+## 2. Clone the Repository
+
+```bash
+git clone <repo-url>
+cd <project-folder>
 ```
+  
 
-You can configure the coverage threshold in your project's `pyproject.toml` file under the `[tool.coverage.report]` section.
+## 3. Initialize the PDM Environment
 
+PDM automatically reads `pyproject.toml` and prepares a virtual environment.
 
-## Project dependencies
+Install all dependencies:
 
-To see and update the dependency requirements for your project use `requirements.txt`. You can install the project requirements with `pip install -r requirements.txt`.
-
-[Further information about project dependencies](https://docs.kedro.org/en/stable/kedro_project_setup/dependencies.html#project-specific-dependencies)
-
-## How to work with Kedro and notebooks
-
-> Note: Using `kedro jupyter` or `kedro ipython` to run your notebook provides these variables in scope: `context`, 'session', `catalog`, and `pipelines`.
->
-> Jupyter, JupyterLab, and IPython are already included in the project requirements by default, so once you have run `pip install -r requirements.txt` you will not need to take any extra steps before you use them.
-
-### Jupyter
-To use Jupyter notebooks in your Kedro project, you need to install Jupyter:
-
-```
-pip install jupyter
+```bash
+pdm install
 ```
 
-After installing Jupyter, you can start a local notebook server:
+This will:
 
-```
-kedro jupyter notebook
-```
+- Create a virtual environment (if one doesn’t already exist)
+- Install project dependencies
+  
+  
+## 4. Activate the Project Environment
 
-### JupyterLab
-To use JupyterLab, you need to install it:
+PDM automatically manages virtual environments.
+To activate the shell inside the environment:
 
-```
-pip install jupyterlab
-```
-
-You can also start JupyterLab:
-
-```
-kedro jupyter lab
+```bash
+pdm venv activate
 ```
 
-### IPython
-And if you want to run an IPython session:
+Alternatively, run commands inside the environment without activating it:
 
+Example:
+```bash
+pdm run pytest
+pdm run kedro info
 ```
-kedro ipython
+
+*Note: `pdm run` works regardless of whether the virtual environment was activated, 
+so examples in this readme will continue to use that. If you have your virtual environment setup,
+you may leave out `pdm run` 
+  
+  
+## 5. Create .env file
+
+LLMs called when executing the `__default__` and `invoke_llm_only` pipelines require environmental variables.
+Create a `.env` file in the project directory with these variables:
+
+```.env
+GEMINI_API_KEY=<your-api-key>
+GEMINI_MODEL="gemini-2.5-flash"
 ```
 
-### How to ignore notebook output cells in `git`
-To automatically strip out all output cell contents before committing to `git`, you can use tools like [`nbstripout`](https://github.com/kynan/nbstripout). For example, you can add a hook in `.git/config` with `nbstripout --install`. This will run `nbstripout` before anything is committed to `git`.
+you may use other gemini models but the project was tested with `gemini-2.5-flash`.
+  
+  
+## 6. Test if `kedro` works
 
-> *Note:* Your output cells will be retained locally.
+```bash
+pdm run kedro info
+```
+If you see ASCII art of KEDRO, your environment is setup.
+  
+  
+## 7. Input data
+Input the data to make a report of, into `data/01_raw`. Ensure the data is composed of only one `.xlsx` file 
+and ensure there is no other `.xlsx` file in the folder.
+  
+  
+## 8. Run the pipeline
+To run the full pipeline:
 
-## Package your Kedro project
+```bash
+pdm run kedro run
+```
 
-[Further information about building project documentation and packaging your project](https://docs.kedro.org/en/stable/tutorial/package_a_project.html)
+Alternatively, you may run each pipeline individually. They must be run in sequence.
+
+```bash
+pdm run kedro run -p data_preprocessing_only
+pdm run kedro run -p invoke_llm_only
+pdm run kedro run -p generate_report_only
+```
+  
+
+## 9. In case there is an error during report generation
+  
+Check if the error is caused by failed execution of a "python-snippet" generated by the llm. (Likely manifestation is failure to index a dataframe)
+If so, the llm output will need to be regenerated. Run:
+  
+```bash
+pdm run kedro run -p invoke_llm_only
+pdm run kedro run -p generate_report_only
+```
+  
+
+## 10. Running for more than one set of data
+
+Before running a second set of data, please manually archive all generated artefacts into `data/03_archived` as you see fit. Leave the `.gitkeep` be.
+(Apologies, I did not have time to automate that) Remove the first set of data from `data/01_raw` such that the second `.xlsx` file 
+is the only `.xlsx` file in `data/01_raw``.
