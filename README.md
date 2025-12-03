@@ -134,4 +134,4 @@ pdm run kedro run -p generate_report_only
 
 Before running a second set of data, please manually archive all generated artefacts into `data/03_archived` as you see fit. Leave the `.gitkeep` be.
 (Apologies, I did not have time to automate that) Remove the first set of data from `data/01_raw` such that the second `.xlsx` file 
-is the only `.xlsx` file in `data/01_raw``.
+is the only `.xlsx` file in `data/01_raw`.
